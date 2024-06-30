@@ -3,9 +3,14 @@ package pokeapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/makzuu/pokedexcli/internal/pokecache"
 	"io"
 	"net/http"
+	"time"
 )
+
+var cache = pokecache.NewCache(5 * time.Minute)
 
 type locationAreas struct {
 	Next      string `json:"next"`
@@ -16,23 +21,27 @@ type locationAreas struct {
 }
 
 func GetLocations(url string) (locationAreas, error) {
-	response, err := http.Get(url)
 	var locations locationAreas
-	if err != nil {
+	val, ok := cache.Get(url)
+	if ok {
+		err := json.Unmarshal(val, &locations)
 		return locations, err
 	}
-	body, err := io.ReadAll(response.Body)
-	response.Body.Close()
+	response, err := http.Get(url)
 	if err != nil {
 		return locations, err
 	}
 	if response.StatusCode > 299 {
-		return locations, errors.New("Response fail with status code: " + string(response.StatusCode))
+		return locations, errors.New(fmt.Sprintf("Response fail with status code: %d\n", response.StatusCode))
 	}
-	err = json.Unmarshal(body, &locations)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return locations, err
 	}
+	response.Body.Close()
 
+	cache.Add(url, body)
+
+	err = json.Unmarshal(body, &locations)
 	return locations, err
 }

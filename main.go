@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/makzuu/pokedexcli/pokeapi"
+	"github.com/makzuu/pokedexcli/internal/pokeapi"
 	"os"
 )
 
