@@ -12,6 +12,8 @@ import (
 
 var cache = pokecache.NewCache(5 * time.Minute)
 
+const baseUrl = "https://pokeapi.co/api/v2/location-area/"
+
 type locationAreas struct {
 	Next      string `json:"next"`
 	Previous  string `json:"previous"`
@@ -32,7 +34,7 @@ func GetLocations(url string) (locationAreas, error) {
 		return locations, err
 	}
 	if response.StatusCode > 299 {
-		return locations, errors.New(fmt.Sprintf("Response fail with status code: %d\n", response.StatusCode))
+		return locations, errors.New(fmt.Sprintf("Response fail with status code: %d", response.StatusCode))
 	}
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -44,4 +46,49 @@ func GetLocations(url string) (locationAreas, error) {
 
 	err = json.Unmarshal(body, &locations)
 	return locations, err
+}
+
+func GetPokemons(area string) ([]string, error) {
+	url := baseUrl + area
+	var body []byte
+
+	body, ok := cache.Get(url)
+	if !ok {
+		res, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		if res.StatusCode > 299 {
+			if res.StatusCode == 404 {
+				return nil, fmt.Errorf("location: %s not found", area)
+			}
+			return nil, fmt.Errorf("Response fail with status code: %d", res.StatusCode)
+		}
+		body, err = io.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		cache.Add(url, body)
+	}
+
+	data := struct {
+		PokemonEncounters []struct {
+			Pokemon struct {
+				Name string
+			}
+		} `json:"pokemon_encounters"`
+	}{}
+
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	pokemons := make([]string, len(data.PokemonEncounters))
+	for i := 0; i < len(data.PokemonEncounters); i++ {
+		pokemons[i] = data.PokemonEncounters[i].Pokemon.Name
+	}
+	return pokemons, nil
 }

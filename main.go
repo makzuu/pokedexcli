@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"github.com/makzuu/pokedexcli/internal/pokeapi"
 	"os"
+	"strings"
 )
 
 type cliCommand struct {
 	name     string
 	desc     string
-	callback func(*config) error
+	callback func(*config, string) error
 }
 
 var commands = map[string]cliCommand{
@@ -35,13 +36,18 @@ var commands = map[string]cliCommand{
 		desc:     "Displays the previous 20 locations",
 		callback: commandMapb,
 	},
+	"explore": {
+		name:     "explore",
+		desc:     "Displays pokemons in the expecified area",
+		callback: commandExplore,
+	},
 }
 
 type config struct {
 	next, previous string
 }
 
-func commandHelp(c *config) error {
+func commandHelp(c *config, param string) error {
 	fmt.Println("")
 
 	fmt.Println("Welcome to the Pokedex!")
@@ -50,17 +56,18 @@ func commandHelp(c *config) error {
 	fmt.Println("\t- exit: Exits the Pokedex")
 	fmt.Println("\t- map: Displays the next 20 locations")
 	fmt.Println("\t- mapb: Displays the previous 20 locations")
+	fmt.Println("\t- explore: Displays pokemons in the expecified area")
 
 	fmt.Println("")
 	return nil
 }
 
-func commandExit(c *config) error {
+func commandExit(c *config, param string) error {
 	os.Exit(0)
 	return nil
 }
 
-func commandMap(c *config) error {
+func commandMap(c *config, param string) error {
 	l, err := pokeapi.GetLocations(c.next)
 	if err != nil {
 		return err
@@ -73,7 +80,7 @@ func commandMap(c *config) error {
 	return nil
 }
 
-func commandMapb(c *config) error {
+func commandMapb(c *config, param string) error {
 	if c.previous == "" {
 		return errors.New("you are on the first page")
 	}
@@ -85,6 +92,22 @@ func commandMapb(c *config) error {
 	c.next = l.Next
 	for _, locations := range l.Locations {
 		fmt.Println(locations.Name)
+	}
+	return nil
+}
+
+func commandExplore(c *config, areaName string) error {
+	if areaName == "" {
+		return fmt.Errorf("explore command expects the area name")
+	}
+	pokemons, err := pokeapi.GetPokemons(areaName)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Exploring %s...\n", areaName)
+	fmt.Println("Found Pokemon:")
+	for _, name := range pokemons {
+		fmt.Println(" - ", name)
 	}
 	return nil
 }
@@ -105,12 +128,23 @@ func main() {
 			break
 		}
 		command := sc.Text()
-		v, ok := commands[command]
+		commandFields := strings.Fields(command)
+		if len(commandFields) < 1 {
+			fmt.Println("invalid command")
+			continue
+		}
+		commandName := commandFields[0]
+		param := ""
+		if len(commandFields) == 2 {
+			param = commandFields[1]
+		}
+		v, ok := commands[commandName]
 		if !ok {
 			fmt.Println("invalid command")
 			continue
 		}
-		if err := v.callback(&conf); err != nil {
+		err := v.callback(&conf, param)
+		if err != nil {
 			fmt.Println(err)
 		}
 	}
