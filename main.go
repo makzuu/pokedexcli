@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/makzuu/pokedexcli/internal/pokeapi"
+	"math/rand"
 	"os"
 	"strings"
 )
@@ -41,7 +42,14 @@ var commands = map[string]cliCommand{
 		desc:     "Displays pokemons in the expecified area",
 		callback: commandExplore,
 	},
+	"catch": {
+		name:     "catch",
+		desc:     "...",
+		callback: commandCatch,
+	},
 }
+
+var pokedex = map[string]pokeapi.Pokemon{}
 
 type config struct {
 	next, previous string
@@ -57,6 +65,7 @@ func commandHelp(c *config, param string) error {
 	fmt.Println("\t- map: Displays the next 20 locations")
 	fmt.Println("\t- mapb: Displays the previous 20 locations")
 	fmt.Println("\t- explore: Displays pokemons in the expecified area")
+	fmt.Println("\t- catch: Try to catch a pokemon")
 
 	fmt.Println("")
 	return nil
@@ -109,6 +118,24 @@ func commandExplore(c *config, areaName string) error {
 	for _, name := range pokemons {
 		fmt.Println(" - ", name)
 	}
+	return nil
+}
+
+func commandCatch(c *config, pokemonName string) error {
+	if pokemonName == "" {
+		return fmt.Errorf("catch command expects pokemon name")
+	}
+	pokemon, err := pokeapi.PokemonInfo(pokemonName)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemon.Name)
+	if float64(rand.Intn(100)) > (float64(pokemon.BaseExperience) * .74) {
+		pokedex[pokemon.Name] = pokemon
+		fmt.Printf("%s was caught!\n", pokemon.Name)
+		return nil
+	}
+	fmt.Printf("%s escaped!\n", pokemon.Name)
 	return nil
 }
 
