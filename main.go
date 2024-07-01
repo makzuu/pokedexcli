@@ -44,8 +44,13 @@ var commands = map[string]cliCommand{
 	},
 	"catch": {
 		name:     "catch",
-		desc:     "...",
+		desc:     "Try to catch a pokemon",
 		callback: commandCatch,
+	},
+	"inspect": {
+		name:     "inspect",
+		desc:     "See details about pokemon",
+		callback: commandInspect,
 	},
 }
 
@@ -66,6 +71,7 @@ func commandHelp(c *config, param string) error {
 	fmt.Println("\t- mapb: Displays the previous 20 locations")
 	fmt.Println("\t- explore: Displays pokemons in the expecified area")
 	fmt.Println("\t- catch: Try to catch a pokemon")
+	fmt.Println("\t- inspect: See details about pokemon")
 
 	fmt.Println("")
 	return nil
@@ -136,6 +142,28 @@ func commandCatch(c *config, pokemonName string) error {
 		return nil
 	}
 	fmt.Printf("%s escaped!\n", pokemon.Name)
+	return nil
+}
+
+func commandInspect(c *config, pokemonName string) error {
+	if pokemonName == "" {
+		return fmt.Errorf("inspect command expects pokemon name")
+	}
+	pokemon, ok := pokedex[pokemonName]
+	if !ok {
+		return fmt.Errorf("you have not caught that pokemon")
+	}
+	fmt.Printf("Name: %s\n", pokemon.Name)
+	fmt.Printf("Height: %d\n", pokemon.Height)
+	fmt.Printf("Weight: %d\n", pokemon.Weight)
+	fmt.Println("Stats: ")
+	for _, v := range pokemon.Stats {
+		fmt.Printf(" -%s: %d\n", v.Stat.Name, v.BaseStat)
+	}
+	fmt.Println("Types: ")
+	for _, v := range pokemon.Types {
+		fmt.Printf(" - %s\n", v.Type.Name)
+	}
 	return nil
 }
 
