@@ -52,6 +52,11 @@ var commands = map[string]cliCommand{
 		desc:     "See details about pokemon",
 		callback: commandInspect,
 	},
+	"pokedex": {
+		name:     "pokedex",
+		desc:     "Prints a list caught pokemons",
+		callback: commandPokedex,
+	},
 }
 
 var pokedex = map[string]pokeapi.Pokemon{}
@@ -72,6 +77,7 @@ func commandHelp(c *config, param string) error {
 	fmt.Println("\t- explore: Displays pokemons in the expecified area")
 	fmt.Println("\t- catch: Try to catch a pokemon")
 	fmt.Println("\t- inspect: See details about pokemon")
+	fmt.Println("\t- pokedex: Prints a list caught pokemons")
 
 	fmt.Println("")
 	return nil
@@ -139,6 +145,7 @@ func commandCatch(c *config, pokemonName string) error {
 	if float64(rand.Intn(100)) > (float64(pokemon.BaseExperience) * .74) {
 		pokedex[pokemon.Name] = pokemon
 		fmt.Printf("%s was caught!\n", pokemon.Name)
+		fmt.Println("You may now inspect it with the inspect command.")
 		return nil
 	}
 	fmt.Printf("%s escaped!\n", pokemon.Name)
@@ -163,6 +170,19 @@ func commandInspect(c *config, pokemonName string) error {
 	fmt.Println("Types: ")
 	for _, v := range pokemon.Types {
 		fmt.Printf(" - %s\n", v.Type.Name)
+	}
+	return nil
+}
+
+func commandPokedex(c *config, param string) error {
+	if len(pokedex) == 0 {
+		fmt.Println("you haven't caught any pokemon")
+		return nil
+	}
+
+	fmt.Println("Your Pokedex:")
+	for _, v := range pokedex {
+		fmt.Printf(" - %s\n", v.Name)
 	}
 	return nil
 }
